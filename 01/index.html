@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Scientific Calculator</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui;
+            background: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .calc {
+            width: 380px;
+            background: #020617;
+            padding: 18px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .display {
+            background: #020617;
+            color: white;
+            min-height: 70px;
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 22px;
+            word-wrap: break-word;
+        }
+
+        .mode {
+            color: #94a3b8;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #334155;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .eq {
+            background: #22c55e;
+        }
+
+        .eq:hover {
+            background: #16a34a;
+        }
+
+        .clear {
+            background: #ef4444;
+        }
+
+        .clear:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="calc">
+
+        <div class="mode">
+            Mode:
+            <button onclick="toggleMode()" id="modeBtn">DEG</button>
+        </div>
+
+        <div class="display" id="display">\(0\)</div>
+
+        <div class="grid">
+
+            <button onclick="add('sin(')">sin</button>
+            <button onclick="add('cos(')">cos</button>
+            <button onclick="add('tan(')">tan</button>
+            <button onclick="add('log(')">log</button>
+            <button onclick="add('ln(')">ln</button>
+
+            <button onclick="add('sqrt(')">√</button>
+            <button onclick="add('^2')">x²</button>
+            <button onclick="add('^3')">x³</button>
+            <button onclick="add('^')">xⁿ</button>
+            <button onclick="add('pi')">π</button>
+
+            <button onclick="add('(')">(</button>
+            <button onclick="add(')')">)</button>
+            <button onclick="add('/')">a/b</button>
+            <button onclick="back()">⌫</button>
+            <button class="clear" onclick="clearAll()">C</button>
+
+            <button onclick="add('7')">7</button>
+            <button onclick="add('8')">8</button>
+            <button onclick="add('9')">9</button>
+            <button onclick="add('/')">÷</button>
+            <button onclick="add('*')">×</button>
+
+            <button onclick="add('4')">4</button>
+            <button onclick="add('5')">5</button>
+            <button onclick="add('6')">6</button>
+            <button onclick="add('-')">−</button>
+            <button onclick="add('+')">+</button>
+
+            <button onclick="add('1')">1</button>
+            <button onclick="add('2')">2</button>
+            <button onclick="add('3')">3</button>
+            <button onclick="add('.')">.</button>
+            <button class="eq" onclick="calc()">=</button>
+
+            <button onclick="add('0')">0</button>
+
+        </div>
+    </div>
+
+    <script>
+        let expr = "";
+        let degree = true;
+
+        function toggleMode() {
+            degree = !degree;
+            document.getElementById("modeBtn").textContent = degree ? "DEG" : "RAD";
+        }
+
+        function add(x) {
+            expr += x;
+            render();
+        }
+
+        function back() {
+            expr = expr.slice(0, -1);
+            render();
+        }
+
+        function clearAll() {
+            expr = "";
+            render();
+        }
+
+        /* Convert expression to LaTeX for display */
+        function toLatex(s) {
+            let t = s;
+
+            t = t.replace(/pi/g, "\\pi");
+            t = t.replace(/sqrt\((.*?)\)/g, "\\sqrt{$1}");
+            t = t.replace(/\^(\d+)/g, "^{\$1}");
+            t = t.replace(/(\d+)\/(\d+)/g, "\\frac{$1}{$2}");
+
+            return t || "0";
+        }
+
+        function render() {
+            document.getElementById("display").innerHTML = `\\(${toLatex(expr)}\\)`;
+            MathJax.typesetPromise();
+        }
+
+        /* Convert to JS */
+        function toJS(s) {
+            let j = s;
+
+            j = j.replace(/pi/g, "Math.PI");
+            j = j.replace(/\^/g, "**");
+            j = j.replace(/sqrt/g, "Math.sqrt");
+            j = j.replace(/log/g, "Math.log10");
+            j = j.replace(/ln/g, "Math.log");
+
+            if (degree) {
+                j = j.replace(/sin\(/g, "Math.sin(Math.PI/180*");
+                j = j.replace(/cos\(/g, "Math.cos(Math.PI/180*");
+                j = j.replace(/tan\(/g, "Math.tan(Math.PI/180*");
+            } else {
+                j = j.replace(/sin/g, "Math.sin");
+                j = j.replace(/cos/g, "Math.cos");
+                j = j.replace(/tan/g, "Math.tan");
+            }
+
+            return j;
+        }
+
+        function calc() {
+            try {
+                let j = toJS(expr);
+                let r = Function("return " + j)();
+
+                if (!isFinite(r)) throw "error";
+
+                expr = String(r);
+                render();
+            } catch {
+                expr = "";
+                document.getElementById("display").innerHTML = "\\(\\text{Error}\\)";
+                MathJax.typesetPromise();
+            }
+        }
+
+        /* Keyboard */
+        document.addEventListener("keydown", e => {
+            if (/[0-9+\-*/().]/.test(e.key)) add(e.key);
+            if (e.key === "Enter") calc();
+            if (e.key === "Backspace") back();
+            if (e.key === "Escape") clearAll();
+        });
+
+        render();
+    </script>
+
+</body>
+
+</html>

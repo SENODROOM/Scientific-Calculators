@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scientific Calculator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg-primary: #faf8f5;
+            --bg-secondary: #ffffff;
+            --bg-display: #f5f2ed;
+            --text-primary: #1a1412;
+            --text-secondary: #6b5e54;
+            --accent: #d4621a;
+            --accent-hover: #b85517;
+            --border: #e0d8cc;
+            --shadow: rgba(26, 20, 18, 0.08);
+            --shadow-strong: rgba(26, 20, 18, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: linear-gradient(135deg, #faf8f5 0%, #f0ebe3 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-primary);
+        }
+
+        .calculator-container {
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            box-shadow:
+                0 8px 32px var(--shadow),
+                0 2px 8px var(--shadow-strong),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            max-width: 420px;
+            width: 100%;
+            padding: 32px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            animation: fadeIn 0.6s ease-out 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .header h1 {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .display-section {
+            background: var(--bg-display);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            min-height: 100px;
+            animation: fadeIn 0.6s ease-out 0.3s both;
+        }
+
+        .expression-display {
+            min-height: 50px;
+            font-size: 20px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            padding: 4px 0;
+        }
+
+        .expression-display::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .expression-display::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .expression-display::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .result-display {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: right;
+            min-height: 20px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.6s ease-out 0.4s both;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-display);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: white;
+            border-color: var(--accent);
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            animation: fadeIn 0.6s ease-out 0.5s both;
+        }
+
+        .calc-btn {
+            padding: 16px 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .calc-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0.1;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+
+        .calc-btn:hover::before {
+            width: 200%;
+            height: 200%;
+        }
+
+        .calc-btn:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .calc-btn:active {
+            transform: translateY(0);
+        }
+
+        .calc-btn.operator {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .calc-btn.operator:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 98, 26, 0.3);
+        }
+
+        .calc-btn.function {
+            background: var(--bg-display);
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .calc-btn.span-2 {
+            grid-column: span 2;
+        }
+
+        .calc-btn.span-3 {
+            grid-column: span 3;
+        }
+
+        .error-message {
+            color: #c94a38;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 8px;
+            min-height: 16px;
+            animation: shake 0.3s ease;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-4px);
+            }
+
+            75% {
+                transform: translateX(4px);
+            }
+        }
+
+        .katex {
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 480px) {
+            .calculator-container {
+                padding: 24px 20px;
+            }
+
+            .button-grid {
+                gap: 6px;
+            }
+
+            .calc-btn {
+                padding: 14px 6px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="calculator-container">
+        <div class="header">
+            <h1>Scientific Calculator</h1>
+            <p>Mathematical Computation</p>
+        </div>
+
+        <div class="display-section">
+            <div class="expression-display" id="expression"></div>
+            <div class="result-display" id="result"></div>
+            <div class="error-message" id="error"></div>
+        </div>
+
+        <div class="mode-toggle">
+            <button class="mode-btn active" id="degBtn" onclick="setAngleMode('deg')">DEG</button>
+            <button class="mode-btn" id="radBtn" onclick="setAngleMode('rad')">RAD</button>
+        </div>
+
+        <div class="button-grid">
+            <!-- Row 1 -->
+            <button class="calc-btn function" onclick="addToExpression('sin(')">sin</button>
+            <button class="calc-btn function" onclick="addToExpression('cos(')">cos</button>
+            <button class="calc-btn function" onclick="addToExpression('tan(')">tan</button>
+            <button class="calc-btn function" onclick="addToExpression('log(')">log</button>
+            <button class="calc-btn function" onclick="addToExpression('ln(')">ln</button>
+
+            <!-- Row 2 -->
+            <button class="calc-btn function" onclick="addToExpression('√(')">√</button>
+            <button class="calc-btn function" onclick="addPower()">x<sup>n</sup></button>
+            <button class="calc-btn function" onclick="addSquare()">x²</button>
+            <button class="calc-btn function" onclick="addToExpression('(')">(</button>
+            <button class="calc-btn function" onclick="addToExpression(')')">)</button>
+
+            <!-- Row 3 -->
+            <button class="calc-btn" onclick="addToExpression('7')">7</button>
+            <button class="calc-btn" onclick="addToExpression('8')">8</button>
+            <button class="calc-btn" onclick="addToExpression('9')">9</button>
+            <button class="calc-btn operator" onclick="addToExpression('÷')">÷</button>
+            <button class="calc-btn function" onclick="clearAll()">AC</button>
+
+            <!-- Row 4 -->
+            <button class="calc-btn" onclick="addToExpression('4')">4</button>
+            <button class="calc-btn" onclick="addToExpression('5')">5</button>
+            <button class="calc-btn" onclick="addToExpression('6')">6</button>
+            <button class="calc-btn operator" onclick="addToExpression('×')">×</button>
+            <button class="calc-btn function" onclick="deleteLast()">⌫</button>
+
+            <!-- Row 5 -->
+            <button class="calc-btn" onclick="addToExpression('1')">1</button>
+            <button class="calc-btn" onclick="addToExpression('2')">2</button>
+            <button class="calc-btn" onclick="addToExpression('3')">3</button>
+            <button class="calc-btn operator" onclick="addToExpression('-')">−</button>
+            <button class="calc-btn function" onclick="addFraction()">a/b</button>
+
+            <!-- Row 6 -->
+            <button class="calc-btn" onclick="addToExpression('0')">0</button>
+            <button class="calc-btn" onclick="addToExpression('.')">.</button>
+            <button class="calc-btn function" onclick="addToExpression('π')">π</button>
+            <button class="calc-btn operator" onclick="addToExpression('+')">+</button>
+            <button class="calc-btn operator" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <script>
+        let expression = '';
+        let angleMode = 'deg'; // 'deg' or 'rad'
+        let lastResult = null;
+
+        const expressionDisplay = document.getElementById('expression');
+        const resultDisplay = document.getElementById('result');
+        const errorDisplay = document.getElementById('error');
+
+        function setAngleMode(mode) {
+            angleMode = mode;
+            document.getElementById('degBtn').classList.toggle('active', mode === 'deg');
+            document.getElementById('radBtn').classList.toggle('active', mode === 'rad');
+            if (expression) {
+                calculate();
+            }
+        }
+
+        function addToExpression(value) {
+            errorDisplay.textContent = '';
+            expression += value;
+            updateDisplay();
+            calculate();
+        }
+
+        function addPower() {
+            errorDisplay.textContent = '';
+            expression += '^';
+            updateDisplay();
+        }
+
+        function addSquare() {
+            errorDisplay.textContent = '';
+            expression += '^2';
+            updateDisplay();
+            calculate();
+        }
+
+        function addFraction() {
+            errorDisplay.textContent = '';
+            expression += '/';
+            updateDisplay();
+        }
+
+        function clearAll() {
+            expression = '';
+            lastResult = null;
+            errorDisplay.textContent = '';
+            updateDisplay();
+            resultDisplay.textContent = '';
+        }
+
+        function deleteLast() {
+            errorDisplay.textContent = '';
+            expression = expression.slice(0, -1);
+            updateDisplay();
+            if (expression) {
+                calculate();
+            } else {
+                resultDisplay.textContent = '';
+            }
+        }
+
+        function updateDisplay() {
+            const latex = convertToLatex(expression);
+            try {
+                katex.render(latex, expressionDisplay, {
+                    throwOnError: false,
+                    displayMode: false
+                });
+            } catch (e) {
+                expressionDisplay.textContent = expression || '0';
+            }
+        }
+
+        function convertToLatex(expr) {
+            if (!expr) return '0';
+
+            let latex = expr;
+
+            // Convert operators
+            latex = latex.replace(/×/g, '\\times');
+            latex = latex.replace(/÷/g, '\\div');
+            latex = latex.replace(/π/g, '\\pi');
+
+            // Convert square root
+            latex = latex.replace(/√\(/g, '\\sqrt{');
+
+            // Convert powers with proper closing
+            latex = latex.replace(/\^(\d+)/g, '^{$1}');
+            latex = latex.replace(/\^2/g, '^{2}');
+
+            // Handle fractions - detect simple fraction patterns
+            latex = latex.replace(/(\d+)\/(\d+)/g, '\\frac{$1}{$2}');
+
+            // Convert functions
+            latex = latex.replace(/sin\(/g, '\\sin(');
+            latex = latex.replace(/cos\(/g, '\\cos(');
+            latex = latex.replace(/tan\(/g, '\\tan(');
+            latex = latex.replace(/log\(/g, '\\log(');
+            latex = latex.replace(/ln\(/g, '\\ln(');
+
+            // Balance braces for sqrt
+            let sqrtCount = (latex.match(/\\sqrt\{/g) || []).length;
+            let openBraces = (latex.match(/\{/g) || []).length;
+            let closeBraces = (latex.match(/\}/g) || []).length;
+
+            // Add closing braces for sqrt if needed
+            for (let i = 0; i < sqrtCount && openBraces > closeBraces; i++) {
+                latex += '}';
+                closeBraces++;
+            }
+
+            return latex;
+        }
+
+        function calculate() {
+            if (!expression) {
+                resultDisplay.textContent = '';
+                return;
+            }
+
+            try {
+                const result = evaluateExpression(expression);
+                lastResult = result;
+
+                // Format result
+                let displayResult;
+                if (Math.abs(result) < 0.0001 || Math.abs(result) > 1e10) {
+                    displayResult = result.toExponential(6);
+                } else {
+                    displayResult = parseFloat(result.toFixed(10)).toString();
+                }
+
+                resultDisplay.textContent = `= ${displayResult}`;
+                errorDisplay.textContent = '';
+            } catch (e) {
+                if (expression && !expression.match(/[+\-×÷^]$/)) {
+                    errorDisplay.textContent = e.message;
+                }
+                resultDisplay.textContent = '';
+            }
+        }
+
+        function evaluateExpression(expr) {
+            // Replace symbols with JavaScript operators
+            let jsExpr = expr
+                .replace(/×/g, '*')
+                .replace(/÷/g, '/')
+                .replace(/π/g, Math.PI.toString())
+                .replace(/√\(/g, 'sqrt(')
+                .replace(/\^/g, '**');
+
+            // Handle trigonometric functions
+            jsExpr = jsExpr.replace(/sin\(/g, 'sin_calc(');
+            jsExpr = jsExpr.replace(/cos\(/g, 'cos_calc(');
+            jsExpr = jsExpr.replace(/tan\(/g, 'tan_calc(');
+            jsExpr = jsExpr.replace(/log\(/g, 'log10(');
+            jsExpr = jsExpr.replace(/ln\(/g, 'log(');
+
+            // Create safe evaluation context
+            const sqrt = Math.sqrt;
+            const log = Math.log;
+            const log10 = Math.log10;
+
+            const sin_calc = (x) => {
+                return angleMode === 'deg' ? Math.sin(x * Math.PI / 180) : Math.sin(x);
+            };
+
+            const cos_calc = (x) => {
+                return angleMode === 'deg' ? Math.cos(x * Math.PI / 180) : Math.cos(x);
+            };
+
+            const tan_calc = (x) => {
+                return angleMode === 'deg' ? Math.tan(x * Math.PI / 180) : Math.tan(x);
+            };
+
+            // Evaluate using Function constructor (safer than eval)
+            const result = Function('sqrt', 'log', 'log10', 'sin_calc', 'cos_calc', 'tan_calc',
+                `'use strict'; return (${jsExpr});`
+            )(sqrt, log, log10, sin_calc, cos_calc, tan_calc);
+
+            if (!isFinite(result)) {
+                throw new Error('Math Error');
+            }
+
+            return result;
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+
+            if (key >= '0' && key <= '9') {
+                addToExpression(key);
+            } else if (key === '.') {
+                addToExpression('.');
+            } else if (key === '+') {
+                addToExpression('+');
+            } else if (key === '-') {
+                addToExpression('-');
+            } else if (key === '*') {
+                addToExpression('×');
+            } else if (key === '/') {
+                e.preventDefault();
+                addToExpression('÷');
+            } else if (key === '(') {
+                addToExpression('(');
+            } else if (key === ')') {
+                addToExpression(')');
+            } else if (key === '^') {
+                addPower();
+            } else if (key === 'Enter' || key === '=') {
+                e.preventDefault();
+                calculate();
+            } else if (key === 'Backspace') {
+                e.preventDefault();
+                deleteLast();
+            } else if (key === 'Escape') {
+                clearAll();
+            }
+        });
+
+        // Initialize display
+        updateDisplay();
+    </script>
+</body>
+
+</html>

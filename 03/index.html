@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Scientific Calculator</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --calc-bg: #2c3e50;
+            --display-bg: #ecf0f1;
+            --btn-color: #34495e;
+            --accent-color: #3498db;
+            --op-color: #e67e22;
+            --equal-color: #27ae60;
+            --text-light: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .calculator {
+            background-color: var(--calc-bg);
+            width: 380px;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Math Display Area */
+        .display-container {
+            background-color: var(--display-bg);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-end;
+            overflow-x: auto;
+        }
+
+        #math-output {
+            font-size: 1.4rem;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            white-space: nowrap;
+        }
+
+        #result-preview {
+            font-size: 1rem;
+            color: #7f8c8d;
+        }
+
+        /* Controls */
+        .mode-toggle {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-light);
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* Buttons Grid */
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            padding: 15px 5px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: var(--btn-color);
+            color: var(--text-light);
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-sci {
+            background-color: #455a64;
+            font-size: 0.9rem;
+        }
+
+        .btn-op {
+            background-color: var(--op-color);
+        }
+
+        .btn-eq {
+            background-color: var(--equal-color);
+            grid-column: span 2;
+        }
+
+        .btn-clear {
+            background-color: #c0392b;
+        }
+
+        .active-mode {
+            color: var(--accent-color);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="calculator">
+        <div class="mode-toggle">
+            <span id="deg-label" class="active-mode">DEG</span> | <span id="rad-label">RAD</span>
+        </div>
+
+        <div class="display-container">
+            <div id="math-output"></div>
+            <div id="result-preview">0</div>
+        </div>
+
+        <div class="buttons-grid">
+            <button class="btn-sci" onclick="addOp('sin(')">sin</button>
+            <button class="btn-sci" onclick="addOp('cos(')">cos</button>
+            <button class="btn-sci" onclick="addOp('tan(')">tan</button>
+            <button class="btn-clear" onclick="clearAll()">AC</button>
+
+            <button class="btn-sci" onclick="addOp('^2')">x²</button>
+            <button class="btn-sci" onclick="addOp('^')">xⁿ</button>
+            <button class="btn-sci" onclick="addOp('sqrt(')">√</button>
+            <button class="btn-op" onclick="deleteLast()">DEL</button>
+
+            <button class="btn-sci" onclick="addOp('log(')">log</button>
+            <button class="btn-sci" onclick="addOp('ln(')">ln</button>
+            <button class="btn-sci" onclick="addOp('pi')">π</button>
+            <button class="btn-op" onclick="toggleMode()">D/R</button>
+
+            <button onclick="addNum('7')">7</button>
+            <button onclick="addNum('8')">8</button>
+            <button onclick="addNum('9')">9</button>
+            <button class="btn-op" onclick="addOp('/')">÷</button>
+
+            <button onclick="addNum('4')">4</button>
+            <button onclick="addNum('5')">5</button>
+            <button onclick="addNum('6')">6</button>
+            <button class="btn-op" onclick="addOp('*')">×</button>
+
+            <button onclick="addNum('1')">1</button>
+            <button onclick="addNum('2')">2</button>
+            <button onclick="addNum('3')">3</button>
+            <button class="btn-op" onclick="addOp('-')">−</button>
+
+            <button onclick="addNum('0')">0</button>
+            <button onclick="addNum('.')">.</button>
+            <button onclick="addOp('(')">(</button>
+            <button class="btn-op" onclick="addOp('+')">+</button>
+
+            <button onclick="addOp(')')">)</button>
+            <button onclick="addOp('/')" style="font-size: 0.8rem;">a/b</button>
+            <button class="btn-eq" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <script>
+        let expression = ""; // Internal math string
+        let isDegree = true;
+
+        const mathOutput = document.getElementById('math-output');
+        const resultPreview = document.getElementById('result-preview');
+
+        function updateDisplay() {
+            // Convert internal expression to LaTeX for KaTeX
+            let latex = expression
+                .replace(/\//g, '\\div ')
+                .replace(/\*/g, '\\times ')
+                .replace(/sqrt\(([^)]+)\)/g, '\\sqrt{$1}')
+                .replace(/\^2/g, '^{2}')
+                .replace(/\^/g, '^{') // Note: Simple implementation for powers
+                .replace(/pi/g, '\\pi ')
+                .replace(/sin\(/g, '\\sin(')
+                .replace(/cos\(/g, '\\cos(')
+                .replace(/tan\(/g, '\\tan(');
+
+            // Basic check to close brackets for superscript in LaTeX view
+            let openBraces = (latex.match(/{/g) || []).length;
+            let closeBraces = (latex.match(/}/g) || []).length;
+            if (openBraces > closeBraces) latex += "}".repeat(openBraces - closeBraces);
+
+            katex.render(latex || "0", mathOutput, { throwOnError: false });
+        }
+
+        function addNum(num) {
+            expression += num;
+            updateDisplay();
+        }
+
+        function addOp(op) {
+            expression += op;
+            updateDisplay();
+        }
+
+        function clearAll() {
+            expression = "";
+            resultPreview.innerText = "0";
+            updateDisplay();
+        }
+
+        function deleteLast() {
+            expression = expression.slice(0, -1);
+            updateDisplay();
+        }
+
+        function toggleMode() {
+            isDegree = !isDegree;
+            document.getElementById('deg-label').classList.toggle('active-mode');
+            document.getElementById('rad-label').classList.toggle('active-mode');
+        }
+
+        function calculate() {
+            try {
+                let evalStr = expression
+                    .replace(/π/g, 'Math.PI')
+                    .replace(/pi/g, 'Math.PI')
+                    .replace(/sqrt\(/g, 'Math.sqrt(')
+                    .replace(/\^/g, '**')
+                    .replace(/ln\(/g, 'Math.log(')
+                    .replace(/log\(/g, 'Math.log10(');
+
+                // Handle Trig with Degree/Radian conversion
+                const trigFuncs = ['sin', 'cos', 'tan'];
+                trigFuncs.forEach(func => {
+                    let regex = new RegExp(`${func}\\(`, 'g');
+                    if (isDegree) {
+                        evalStr = evalStr.replace(regex, `Math.${func}((Math.PI/180)*`);
+                    } else {
+                        evalStr = evalStr.replace(regex, `Math.${func}(`);
+                    }
+                });
+
+                // Caution: eval is used here for logic simplicity in this demo.
+                // For production, a math-parser library is safer.
+                let result = eval(evalStr);
+
+                if (!isFinite(result)) throw new Error("Math Error");
+
+                resultPreview.innerText = "= " + Number(result.toFixed(8));
+            } catch (e) {
+                resultPreview.innerText = "Error";
+            }
+        }
+
+        // Keyboard Support
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= 0 && e.key <= 9) addNum(e.key);
+            if (['+', '-', '*', '/', '(', ')', '.'].includes(e.key)) addOp(e.key);
+            if (e.key === 'Enter') calculate();
+            if (e.key === 'Backspace') deleteLast();
+            if (e.key === 'Escape') clearAll();
+        });
+
+        updateDisplay();
+    </script>
+
+</body>
+
+</html>
