@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Math Editor with Calculator</title>
+    <!-- MathQuill -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css" />
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css" />
+    <!-- Math.js for safe evaluation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .toolbar button {
+            padding: 10px 16px;
+            font-size: 18px;
+            min-width: 60px;
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .toolbar button:hover {
+            background: #dee2e6;
+        }
+
+        .toolbar button.calculate {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+            font-weight: bold;
+        }
+
+        .toolbar button.calculate:hover {
+            background: #218838;
+        }
+
+        .math-field {
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 80px;
+            font-size: 28px;
+            margin-bottom: 20px;
+            background: #fff;
+        }
+
+        .rendered {
+            min-height: 80px;
+            padding: 16px;
+            font-size: 28px;
+            background: #f1f3f5;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #dee2e6;
+        }
+
+        .latex-output {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 15px;
+            word-break: break-all;
+        }
+
+        .result-box {
+            background: #d4edda;
+            color: #155724;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-box.empty,
+        .result-box.error {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Math Editor + Calculator</h2>
+
+        <div class="toolbar">
+            <button id="btn-frac"></button>
+            <button id="btn-sqrt"></button>
+            <button id="btn-sum"></button>
+            <button id="btn-sup"></button>
+            <button id="btn-sub"></button>
+            <button id="btn-paren"></button>
+            <button id="btn-calculate" class="calculate">Calculate</button>
+        </div>
+
+        <div id="math-field" class="math-field"></div>
+
+        <div id="rendered" class="rendered"></div>
+
+        <div id="latex-output" class="latex-output">LaTeX: </div>
+
+        <div id="result" class="result-box">Result will appear here</div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
+
+    <script>
+        // Global reference
+        let mathField;
+
+        function initMathEditor() {
+            const MQ = MathQuill.getInterface(2);
+
+            mathField = MQ.MathField(document.getElementById('math-field'), {
+                handlers: {
+                    edit: updateDisplay
+                }
+            });
+
+            // Button labels
+            const buttons = {
+                'btn-frac': '\\frac{a}{b}',
+                'btn-sqrt': '\\sqrt{a}',
+                'btn-sum': '\\sum_{i=1}^{n}',
+                'btn-sup': 'a^{b}',
+                'btn-sub': 'a_{b}',
+                'btn-paren': '\\left(  \\right)'
+            };
+
+            for (const [id, tex] of Object.entries(buttons)) {
+                document.getElementById(id).innerHTML = katex.renderToString(tex, {
+                    throwOnError: false
+                });
+            }
+
+            // Toolbar actions
+            document.getElementById('btn-frac').onclick = () => { mathField.focus(); mathField.cmd('\\frac'); };
+            document.getElementById('btn-sqrt').onclick = () => { mathField.focus(); mathField.cmd('\\sqrt'); };
+            document.getElementById('btn-sum').onclick = () => { mathField.focus(); mathField.cmd('\\sum'); };
+            document.getElementById('btn-sup').onclick = () => { mathField.focus(); mathField.cmd('^'); };
+            document.getElementById('btn-sub').onclick = () => { mathField.focus(); mathField.cmd('_'); };
+            document.getElementById('btn-paren').onclick = () => {
+                mathField.focus();
+                mathField.write('\\left( \\right)');
+                mathField.keystroke('Left');
+            };
+
+            // Calculate button
+            document.getElementById('btn-calculate').onclick = calculateExpression;
+
+            // Initial render
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const latex = mathField.latex().trim();
+
+            document.getElementById('latex-output').innerText = 'LaTeX: ' + (latex || '(empty)');
+
+            katex.render(latex || '\\,\\text{(empty)}', document.getElementById('rendered'), {
+                throwOnError: false,
+                displayMode: false
+            });
+        }
+
+        function calculateExpression() {
+            const latex = mathField.latex().trim();
+            const resultBox = document.getElementById('result');
+
+            if (!latex) {
+                resultBox.className = 'result-box empty';
+                resultBox.innerText = 'Expression is empty';
+                return;
+            }
+
+            // Very basic variable detection (looks for letters that are not functions like sin, cos, etc.)
+            const hasVariables = /[a-zA-Z]/.test(latex.replace(/\\(sin|cos|tan|log|ln|sqrt|frac|sum|int|lim|pi|e)/g, ''));
+
+            if (hasVariables) {
+                resultBox.className = 'result-box error';
+                resultBox.innerText = 'Contains variables — cannot calculate';
+                return;
+            }
+
+            try {
+                // Convert some LaTeX to mathjs-understandable format
+                let expr = latex
+                    .replace(/\\frac{([^}]*)}{([^}]*)}/g, '($1)/($2)')
+                    .replace(/\\sqrt{([^}]*)}/g, 'sqrt($1)')
+                    .replace(/\\left\(/g, '(')
+                    .replace(/\\right\)/g, ')')
+                    .replace(/\\pi/g, 'pi')
+                    .replace(/\\times/g, '*')
+                    .replace(/\\div/g, '/');
+
+                // Evaluate safely with math.js
+                const result = math.evaluate(expr);
+
+                // Format nicely
+                let displayResult = Number.isFinite(result) ? Number(result).toLocaleString(undefined, {
+                    maximumFractionDigits: 8
+                }) : result.toString();
+
+                resultBox.className = 'result-box';
+                resultBox.innerText = '= ' + displayResult;
+            } catch (err) {
+                resultBox.className = 'result-box error';
+                resultBox.innerText = 'Error: ' + err.message;
+            }
+        }
+
+        // Start
+        document.addEventListener('DOMContentLoaded', initMathEditor);
+    </script>
+</body>
+
+</html>

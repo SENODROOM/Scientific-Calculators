@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Math Editor</title>
+
+    <!-- jQuery (required by MathQuill) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- MathQuill -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mathquill/build/mathquill.css">
+    <script src="https://cdn.jsdelivr.net/npm/mathquill/build/mathquill.min.js"></script>
+
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f6fa;
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .container {
+            width: 700px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 12px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            background: #e4e7ef;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #d2d6e2;
+        }
+
+        /* Math editor box */
+        .editor {
+            border: 2px solid #dcdde1;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 60px;
+            font-size: 22px;
+            cursor: text;
+        }
+
+        /* Output */
+        .section {
+            margin-top: 20px;
+        }
+
+        .output-box {
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 40px;
+            font-family: monospace;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Interactive Math Editor</h2>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button data-latex="\\frac{}{}">Fraction</button>
+            <button data-latex="\\sqrt{}">√</button>
+            <button data-latex="^{}">x²</button>
+            <button data-latex="_{}">xᵢ</button>
+            <button data-latex="\\sum_{}^{}">Σ</button>
+            <button data-latex="\\left( \\right)">()</button>
+            <button data-latex="\\pi">π</button>
+            <button data-latex="\\theta">θ</button>
+            <button data-latex="+">+</button>
+            <button data-latex="-">−</button>
+        </div>
+
+        <!-- MathQuill editor -->
+        <div id="math-editor" class="editor"></div>
+
+        <!-- LaTeX output -->
+        <div class="section">
+            <strong>LaTeX Output:</strong>
+            <div id="latex-output" class="output-box"></div>
+        </div>
+
+        <!-- Rendered output -->
+        <div class="section">
+            <strong>Rendered Output:</strong>
+            <div id="render-output" class="output-box"></div>
+        </div>
+    </div>
+
+    <script>
+        /* =========================
+           Math Editor Module
+           ========================= */
+
+        const MathEditor = (() => {
+            const MQ = MathQuill.getInterface(2);
+
+            const editorSpan = document.getElementById("math-editor");
+            const latexOutput = document.getElementById("latex-output");
+            const renderOutput = document.getElementById("render-output");
+
+            const mathField = MQ.MathField(editorSpan, {
+                spaceBehavesLikeTab: true,
+                handlers: {
+                    edit: updateOutputs
+                }
+            });
+
+            function insertLatex(latex) {
+                mathField.write(latex);
+                mathField.focus();
+            }
+
+            function updateOutputs() {
+                const latex = mathField.latex();
+                latexOutput.textContent = latex;
+
+                try {
+                    katex.render(latex, renderOutput, {
+                        throwOnError: false
+                    });
+                } catch (e) {
+                    renderOutput.textContent = "Rendering error";
+                }
+            }
+
+            return {
+                insertLatex,
+                mathField
+            };
+        })();
+
+        /* =========================
+           Toolbar Controller
+           ========================= */
+
+        document.querySelectorAll(".toolbar button").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const latex = btn.getAttribute("data-latex");
+                MathEditor.insertLatex(latex);
+            });
+        });
+    </script>
+
+</body>
+
+</html>

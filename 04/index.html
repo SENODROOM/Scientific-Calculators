@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Math Editor + Calculator</title>
+
+    <!-- jQuery (required by MathQuill) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- MathQuill -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mathquill/build/mathquill.css">
+    <script src="https://cdn.jsdelivr.net/npm/mathquill/build/mathquill.min.js"></script>
+
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <!-- math.js calculator engine -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@12/lib/browser/math.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f4f8;
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .container {
+            width: 700px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 12px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            background: #e6e8f0;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #d4d7e4;
+        }
+
+        #calcBtn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        #calcBtn:hover {
+            background: #43a047;
+        }
+
+        /* Editor */
+        .editor {
+            border: 2px solid #dcdde1;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 60px;
+            font-size: 22px;
+            cursor: text;
+        }
+
+        /* Output */
+        .section {
+            margin-top: 20px;
+        }
+
+        .output-box {
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 40px;
+            font-family: monospace;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Math Editor + Calculator</h2>
+
+        <div class="toolbar">
+            <button data-latex="\\frac{}{}">Fraction</button>
+            <button data-latex="\\sqrt{}">√</button>
+            <button data-latex="^{}">x²</button>
+            <button data-latex="_{}">xᵢ</button>
+            <button data-latex="\\sum_{n=1}^{ }">Σ</button>
+            <button data-latex="\\left( \\right)">()</button>
+            <button data-latex="+">+</button>
+            <button data-latex="-">−</button>
+            <button data-latex="\\cdot">*</button>
+            <button data-latex="/">÷</button>
+            <button data-latex="\\pi">π</button>
+            <button id="calcBtn">=</button>
+        </div>
+
+        <div id="math-editor" class="editor"></div>
+
+        <div class="section">
+            <strong>LaTeX Output:</strong>
+            <div id="latex-output" class="output-box"></div>
+        </div>
+
+        <div class="section">
+            <strong>Rendered Output:</strong>
+            <div id="render-output" class="output-box"></div>
+        </div>
+
+    </div>
+
+    <script>
+        window.addEventListener("load", () => {
+
+            /* =========================
+               Math Editor Module
+            ========================= */
+
+            const MathEditor = (() => {
+                const MQ = MathQuill.getInterface(2);
+
+                const editorSpan = document.getElementById("math-editor");
+                const latexOutput = document.getElementById("latex-output");
+                const renderOutput = document.getElementById("render-output");
+
+                const mathField = MQ.MathField(editorSpan, {
+                    spaceBehavesLikeTab: true,
+                    handlers: {
+                        edit: updateOutputs
+                    }
+                });
+
+                function insertLatex(latex) {
+                    mathField.write(latex);
+                    mathField.focus();
+                }
+
+                function updateOutputs() {
+                    const latex = mathField.latex();
+                    latexOutput.textContent = latex;
+
+                    try {
+                        katex.render(latex, renderOutput, { throwOnError: false });
+                    } catch {
+                        renderOutput.textContent = "Rendering error";
+                    }
+                }
+
+                return { insertLatex, mathField };
+            })();
+
+            /* =========================
+               Toolbar Controller
+            ========================= */
+
+            document.querySelectorAll(".toolbar button[data-latex]")
+                .forEach(btn => {
+                    btn.addEventListener("click", () => {
+                        MathEditor.insertLatex(btn.dataset.latex);
+                    });
+                });
+
+            /* =========================
+     Calculator Module (FIXED)
+  ========================= */
+
+            document.getElementById("calcBtn").addEventListener("click", () => {
+                let latex = MathEditor.mathField.latex();
+
+                try {
+                    // Remove LaTeX commands (\frac, \sqrt, etc.)
+                    const cleaned = latex.replace(/\\[a-zA-Z]+/g, "");
+
+                    // If letters remain → user typed variables like x or y
+                    if (/[a-zA-Z]/.test(cleaned)) {
+                        alert("Expression contains variables. Cannot evaluate.");
+                        return;
+                    }
+
+                    // Convert LaTeX → math.js expression
+                    const expr = latex
+                        .replace(/\\frac{([^}]*)}{([^}]*)}/g, "($1)/($2)")
+                        .replace(/\\sqrt{([^}]*)}/g, "sqrt($1)")
+                        .replace(/\\cdot/g, "*")
+                        .replace(/\\pi/g, "pi")
+                        .replace(/\\left|\\right/g, "");
+
+                    const result = math.evaluate(expr);
+
+                    MathEditor.mathField.latex(result.toString());
+
+                } catch (err) {
+                    alert("Invalid numeric expression");
+                    console.error(err);
+                }
+            });
+
+
+        });
+    </script>
+
+</body>
+
+</html>

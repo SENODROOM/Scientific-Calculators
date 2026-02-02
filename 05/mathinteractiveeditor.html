@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematical Expression Editor</title>
+
+    <!-- MathQuill CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mathquill@0.10.1/build/mathquill.css">
+
+    <!-- KaTeX CSS for rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        /* Toolbar styles */
+        .toolbar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .toolbar button {
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .toolbar button:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .toolbar button:active {
+            transform: translateY(0);
+        }
+
+        /* Editor container */
+        .editor-section {
+            margin-bottom: 30px;
+        }
+
+        .section-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #math-field {
+            min-height: 80px;
+            padding: 20px;
+            border: 3px solid #667eea;
+            border-radius: 12px;
+            font-size: 24px;
+            background: #fafbfc;
+            cursor: text;
+            transition: all 0.3s ease;
+        }
+
+        #math-field:focus-within {
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        /* MathQuill overrides */
+        .mq-editable-field {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .mq-cursor {
+            border-left: 2px solid #667eea !important;
+        }
+
+        /* Output section */
+        .output-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        #latex-output {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            color: #333;
+            margin-top: 10px;
+            word-break: break-all;
+            border: 1px solid #ddd;
+            min-height: 40px;
+        }
+
+        #rendered-output {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 28px;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ddd;
+        }
+
+        /* Action buttons */
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-clear {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #ee5a52;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-copy {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #40c057;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(81, 207, 102, 0.3);
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .toolbar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+
+        /* Symbol hint */
+        .symbol-hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📐 Mathematical Expression Editor</h1>
+        <p class="subtitle">Create beautiful mathematical expressions with visual editing</p>
+
+        <!-- Toolbar with math operation buttons -->
+        <div class="toolbar">
+            <button onclick="insertFraction()" title="Fraction">
+                <span>➗</span> Fraction
+            </button>
+            <button onclick="insertSquareRoot()" title="Square Root">
+                <span>√</span> Root
+            </button>
+            <button onclick="insertSuperscript()" title="Superscript">
+                <span>x²</span> Power
+            </button>
+            <button onclick="insertSubscript()" title="Subscript">
+                <span>xᵢ</span> Subscript
+            </button>
+            <button onclick="insertSummation()" title="Summation">
+                <span>Σ</span> Sum
+            </button>
+            <button onclick="insertIntegral()" title="Integral">
+                <span>∫</span> Integral
+            </button>
+            <button onclick="insertParentheses()" title="Parentheses">
+                <span>()</span> Parens
+            </button>
+            <button onclick="insertMatrix()" title="Matrix">
+                <span>[ ]</span> Matrix
+            </button>
+        </div>
+
+        <!-- Math input field -->
+        <div class="editor-section">
+            <div class="section-label">✏️ Input Editor</div>
+            <div id="math-field"></div>
+            <p class="symbol-hint">Click toolbar buttons or type naturally. Use keyboard shortcuts like ^ for power, _
+                for subscript</p>
+        </div>
+
+        <!-- Output display -->
+        <div class="output-section">
+            <div class="section-label">📋 LaTeX Output</div>
+            <div id="latex-output"></div>
+        </div>
+
+        <div class="output-section">
+            <div class="section-label">🎨 Rendered Expression</div>
+            <div id="rendered-output"></div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="actions">
+            <button class="btn-clear" onclick="clearField()">🗑️ Clear</button>
+            <button class="btn-copy" onclick="copyLatex()">📋 Copy LaTeX</button>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- jQuery (required for MathQuill) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- MathQuill JS -->
+    <script src="https://cdn.jsdelivr.net/npm/mathquill@0.10.1/build/mathquill.min.js"></script>
+
+    <!-- KaTeX JS for rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <script>
+        // Initialize MathQuill
+        const MQ = MathQuill.getInterface(2);
+        let mathField;
+
+        // Initialize the math field when the page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            const mathFieldSpan = document.getElementById('math-field');
+
+            // Create editable MathQuill field
+            mathField = MQ.MathField(mathFieldSpan, {
+                spaceBehavesLikeTab: true,
+                leftRightIntoCmdGoes: 'up',
+                restrictMismatchedBrackets: true,
+                sumStartsWithNEquals: true,
+                supSubsRequireOperand: false,
+                charsThatBreakOutOfSupSub: '+-=<>',
+                autoSubscriptNumerals: false,
+                autoCommands: 'pi theta sqrt sum int',
+                autoOperatorNames: 'sin cos tan log ln',
+                handlers: {
+                    edit: function () {
+                        updateOutput();
+                    }
+                }
+            });
+
+            // Focus the field
+            mathField.focus();
+
+            // Initial update
+            updateOutput();
+        });
+
+        // Update the LaTeX and rendered output
+        function updateOutput() {
+            const latex = mathField.latex();
+
+            // Update LaTeX display
+            document.getElementById('latex-output').textContent = latex || '(empty)';
+
+            // Render with KaTeX
+            const renderedOutput = document.getElementById('rendered-output');
+            try {
+                if (latex) {
+                    katex.render(latex, renderedOutput, {
+                        throwOnError: false,
+                        displayMode: true
+                    });
+                } else {
+                    renderedOutput.innerHTML = '<span style="color: #999;">Your expression will appear here</span>';
+                }
+            } catch (e) {
+                renderedOutput.innerHTML = '<span style="color: #ff6b6b;">Error rendering expression</span>';
+            }
+        }
+
+        // Toolbar functions
+        function insertFraction() {
+            mathField.cmd('\\frac');
+            mathField.focus();
+        }
+
+        function insertSquareRoot() {
+            mathField.cmd('\\sqrt');
+            mathField.focus();
+        }
+
+        function insertSuperscript() {
+            mathField.cmd('^');
+            mathField.focus();
+        }
+
+        function insertSubscript() {
+            mathField.cmd('_');
+            mathField.focus();
+        }
+
+        function insertSummation() {
+            mathField.cmd('\\sum');
+            mathField.focus();
+        }
+
+        function insertIntegral() {
+            mathField.cmd('\\int');
+            mathField.focus();
+        }
+
+        function insertParentheses() {
+            mathField.cmd('\\left(');
+            mathField.cmd('\\right)');
+            mathField.keystroke('Left');
+            mathField.focus();
+        }
+
+        function insertMatrix() {
+            mathField.write('\\begin{bmatrix}  &  \\\\ & \\end{bmatrix}');
+            mathField.focus();
+        }
+
+        // Clear the math field
+        function clearField() {
+            mathField.latex('');
+            mathField.focus();
+            updateOutput();
+            showToast('Field cleared');
+        }
+
+        // Copy LaTeX to clipboard
+        function copyLatex() {
+            const latex = mathField.latex();
+            if (!latex) {
+                showToast('Nothing to copy');
+                return;
+            }
+
+            navigator.clipboard.writeText(latex).then(() => {
+                showToast('LaTeX copied to clipboard!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = latex;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('LaTeX copied to clipboard!');
+            });
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // Keyboard shortcuts info
+        console.log('Keyboard shortcuts:');
+        console.log('^ - superscript');
+        console.log('_ - subscript');
+        console.log('/ - fraction');
+        console.log('sqrt - square root');
+        console.log('sum - summation');
+        console.log('int - integral');
+    </script>
+</body>
+
+</html>

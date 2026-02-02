@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Math Editor & Calculator</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.all.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #059669;
+            --bg: #f8fafc;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: system-ui;
+            background: var(--bg);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .editor-container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            background: #fafafa;
+        }
+
+        .math-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .math-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        #math-field {
+            width: calc(100% - 40px);
+            margin: 20px;
+            padding: 15px;
+            font-size: 1.4rem;
+            border: 1px solid var(--border) !important;
+            border-radius: 8px;
+        }
+
+        .action-bar {
+            padding: 0 20px 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .calc-btn {
+            flex-grow: 1;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .calc-btn:hover {
+            opacity: 0.9;
+        }
+
+        .result-panel {
+            margin: 0 20px 20px;
+            padding: 15px;
+            background: #f0fdf4;
+            border-radius: 8px;
+            border: 1px solid #bbf7d0;
+            display: none;
+        }
+
+        .result-val {
+            font-size: 1.5rem;
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .error-msg {
+            color: #dc2626;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="editor-container">
+        <div class="toolbar">
+            <button class="math-btn" data-cmd="\frac">$\frac{a}{b}$</button>
+            <button class="math-btn" data-cmd="\sqrt">$\sqrt{x}$</button>
+            <button class="math-btn" data-cmd="^">^</button>
+            <button class="math-btn" data-cmd="_">_</button>
+            <button class="math-btn" data-cmd="\pi">$\pi$</button>
+            <button class="math-btn" data-cmd="\sin">sin</button>
+            <button class="math-btn" data-cmd="\cos">cos</button>
+        </div>
+
+        <div id="math-field"></div>
+
+        <div class="action-bar">
+            <button class="calc-btn" onclick="calculateResult()">Calculate Numerical Value</button>
+        </div>
+
+        <div id="result-panel" class="result-panel">
+            <div style="font-size: 0.8rem; color: #166534;">RESULT</div>
+            <div id="result-display" class="result-val"></div>
+            <div id="error-display" class="error-msg"></div>
+        </div>
+    </div>
+
+    <script>
+        const MQ = MathQuill.getInterface(2);
+        const mathFieldSpan = document.getElementById('math-field');
+        const resultPanel = document.getElementById('result-panel');
+        const resultDisplay = document.getElementById('result-display');
+        const errorDisplay = document.getElementById('error-display');
+
+        const mathField = MQ.MathField(mathFieldSpan, {
+            spaceBehavesLikeTab: true,
+            handlers: { edit: () => { resultPanel.style.display = 'none'; } }
+        });
+
+        // Toolbar logic
+        document.querySelectorAll('.math-btn').forEach(btn => {
+            btn.onclick = () => {
+                const cmd = btn.getAttribute('data-cmd');
+                cmd.startsWith('\\') ? mathField.cmd(cmd) : mathField.write(cmd);
+                mathField.focus();
+            };
+        });
+
+        function calculateResult() {
+            const latex = mathField.latex();
+            console.log("Original LaTeX:", latex); // Debugging
+
+            // 1. REPLACEMENT MAP: Convert LaTeX specificities to Math.js logic
+            let cleanInput = latex
+                .replace(/\\frac{([^}]+)}{([^}]+)}/g, "($1)/($2)") // Convert Fractions
+                .replace(/\\sqrt{([^}]+)}/g, "sqrt($1)")           // Convert Square Roots
+                .replace(/\\left\(|\\right\)/g, "(")               // Standardize Parentheses
+                .replace(/\\cdot/g, "*")                           // Multiplication dots
+                .replace(/\\pi/g, "PI")                            // Pi constant
+                .replace(/\\(sin|cos|tan|log|ln)/g, "$1")          // Remove backslash from functions
+                .replace(/\{|\}/g, "");                            // Strip remaining braces
+
+            // 2. SMART VARIABLE CHECK
+            // We remove all valid math function names and numbers. 
+            // If any letters remain, they are genuine variables (like x, a, b).
+            const checkForVars = cleanInput
+                .replace(/(sqrt|sin|cos|tan|log|ln|PI|exp)/g, "") // Remove functions
+                .replace(/[0-9.]/g, "")                         // Remove numbers
+                .replace(/[\+\-\*\/\^\(\)]/g, "")                // Remove operators
+                .trim();
+
+            resultPanel.style.display = 'block';
+            errorDisplay.style.display = 'none';
+            resultDisplay.textContent = '';
+
+            // If there is anything left in 'checkForVars', it's a variable
+            if (checkForVars.length > 0) {
+                errorDisplay.textContent = `Cannot calculate: Contains variables (${checkForVars}).`;
+                errorDisplay.style.display = 'block';
+                return;
+            }
+
+            try {
+                // 3. EVALUATE
+                // We use math.evaluate. 
+                // Note: For Trig, Math.js defaults to Radians.
+                const result = math.evaluate(cleanInput);
+
+                // Format result: convert to number if it's a Math.js object, then round
+                const finalValue = typeof result === 'number' ? result : math.number(result);
+                resultDisplay.textContent = +finalValue.toFixed(6);
+
+            } catch (err) {
+                console.error("Cleaned string that failed:", cleanInput);
+                errorDisplay.textContent = "Syntax Error. Check your expression.";
+                errorDisplay.style.display = 'block';
+            }
+        }
+        mathField.latex('\\frac{\\sqrt{144}}{2} + \\pi');
+    </script>
+
+</body>
+
+</html>

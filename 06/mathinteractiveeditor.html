@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Math Editor</title>
+    <!-- MathQuill CSS for editable math input -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css" />
+    <!-- KaTeX CSS for static rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Toolbar with buttons for inserting math structures -->
+        <div class="toolbar">
+            <button id="btn-frac"></button>
+            <button id="btn-sqrt"></button>
+            <button id="btn-sum"></button>
+            <button id="btn-sup"></button>
+            <button id="btn-sub"></button>
+            <button id="btn-paren"></button>
+        </div>
+        <!-- Editable math field using MathQuill -->
+        <div id="math-field" class="math-field"></div>
+        <!-- Static rendered output using KaTeX -->
+        <div id="rendered" class="rendered"></div>
+        <!-- Display the internal LaTeX string -->
+        <div id="latex-output" class="latex-output">LaTeX: </div>
+    </div>
+
+    <!-- jQuery (required for MathQuill) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- MathQuill JS for input editing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+    <!-- KaTeX JS for rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
+    <!-- Custom JS -->
+    <script src="script.js"></script>
+</body>
+
+</html>

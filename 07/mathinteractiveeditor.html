@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Math Editor</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --bg-gray: #f8fafc;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gray);
+            padding: 40px;
+        }
+
+        .editor-container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* Toolbar Styling */
+        .toolbar {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 8px;
+            padding: 15px;
+            background: #fff;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .math-btn {
+            padding: 10px 5px;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+
+        .math-btn:hover {
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+
+        /* Input Area */
+        #math-field {
+            width: calc(100% - 30px);
+            margin: 15px;
+            padding: 15px;
+            font-size: 1.5rem;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 8px;
+            min-height: 60px;
+        }
+
+        /* Live Output Area */
+        .output-section {
+            padding: 20px;
+            background: #f1f5f9;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        #latex-output {
+            font-family: 'Courier New', monospace;
+            color: var(--primary-blue);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        #rendered-output {
+            font-size: 1.8rem;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="editor-container">
+        <div class="toolbar">
+            <button class="math-btn" data-cmd="\frac">$\frac{a}{b}$</button>
+            <button class="math-btn" data-cmd="\sqrt">$\sqrt{x}$</button>
+            <button class="math-btn" data-cmd="^">x²</button>
+            <button class="math-btn" data-cmd="_">xₙ</button>
+            <button class="math-btn" data-cmd="\sum">$\sum$</button>
+            <button class="math-btn" data-cmd="\left(\right)">( )</button>
+            <button class="math-btn" data-cmd="\int">$\int$</button>
+            <button class="math-btn" data-cmd="\pi">$\pi$</button>
+        </div>
+
+        <div id="math-field"></div>
+
+        <div class="output-section">
+            <div class="label">Internal LaTeX</div>
+            <div id="latex-output"></div>
+            <div class="label">Live Rendered (KaTeX)</div>
+            <div id="rendered-output"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize MathQuill
+        const MQ = MathQuill.getInterface(2);
+        const mathFieldSpan = document.getElementById('math-field');
+        const latexOutput = document.getElementById('latex-output');
+        const renderedOutput = document.getElementById('rendered-output');
+
+        const mathField = MQ.MathField(mathFieldSpan, {
+            spaceBehavesLikeTab: true,
+            handlers: {
+                edit: function () {
+                    const enteredMath = mathField.latex();
+                    updateDisplay(enteredMath);
+                }
+            }
+        });
+
+        // Toolbar logic
+        document.querySelectorAll('.math-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const cmd = button.getAttribute('data-cmd');
+
+                if (cmd.startsWith('\\')) {
+                    mathField.cmd(cmd); // For commands like \frac or \sqrt
+                } else {
+                    mathField.write(cmd); // For simple characters or wrappers
+                }
+                mathField.focus();
+            });
+        });
+
+        // Update both raw LaTeX and the KaTeX preview
+        function updateDisplay(latex) {
+            latexOutput.textContent = latex;
+
+            try {
+                katex.render(latex, renderedOutput, {
+                    throwOnError: false,
+                    displayMode: true
+                });
+            } catch (e) {
+                console.error("Rendering error:", e);
+            }
+        }
+
+        // Initial Placeholder
+        mathField.latex('x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}');
+    </script>
+
+</body>
+
+</html>
